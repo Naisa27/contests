@@ -23,13 +23,22 @@ def main() -> None:
     assert any(code.co_name == "ScoreDelegate" for code in walk(model)), "Нет редактора очистки оценок"
     dialogs = archive.extract("school_contests.ui.dialogs")
     assert any("resizeRowsToContents" in code.co_names for code in walk(dialogs)), "Устаревший предпросмотр импорта"
+    guide = archive.extract("school_contests.ui.guide")
+    assert any(code.co_name == "GuideDialog" for code in walk(guide)), "Нет окна путеводителя"
+    assert __version__ in archive.extract("school_contests").co_consts, "В exe неверная версия пакета"
     application = ROOT / "dist/SchoolContests"
-    info = read_version_info_from_executable(str(application / "SchoolContests.exe"))
     expected = tuple(map(int, __version__.split("."))) + (0,)
-    assert info.ffi.fileVersionMS == expected[0] * 65536 + expected[1]
-    assert info.ffi.fileVersionLS == expected[2] * 65536 + expected[3]
-    for name in ("images/logo.jpg", "images/app.ico", "images/app-icon.png", "changes.txt"):
+    installer = ROOT / "dist" / f"SchoolContests-{__version__}-setup.exe"
+    for executable in (application / "SchoolContests.exe", installer):
+        info = read_version_info_from_executable(str(executable))
+        assert info.ffi.fileVersionMS == expected[0] * 65536 + expected[1], executable
+        assert info.ffi.fileVersionLS == expected[2] * 65536 + expected[3], executable
+    for name in ("images/logo.jpg", "images/app.ico", "images/app-icon.png", "changes.txt", "guide.md"):
         assert (application / "_internal/school_contests/resources" / name).is_file()
+    for name in ("guide.md", "changes.txt"):
+        assert (application / "_internal/school_contests/resources" / name).read_bytes() == (ROOT / "src/school_contests/resources" / name).read_bytes()
+    assert (application / "Путеводитель.md").read_bytes() == (ROOT / "src/school_contests/resources/guide.md").read_bytes()
+    assert "../src/school_contests/resources/guide.md" not in (application / "Инструкция.md").read_text(encoding="utf-8")
     assert not (application / "portable.flag").exists()
     with ZipFile(ROOT / "dist" / f"SchoolContests-{__version__}-portable.zip") as zipped:
         assert "SchoolContests/portable.flag" in zipped.namelist()

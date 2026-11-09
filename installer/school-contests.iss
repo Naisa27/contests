@@ -8,6 +8,8 @@
 AppId={{A6042B54-67A6-43D9-A13A-498F7B5A00E8}
 AppName=Школьные конкурсы
 AppVersion={#AppVersion}
+VersionInfoVersion={#AppVersion}
+VersionInfoProductVersion={#AppVersion}
 AppPublisher=SchoolContests
 DefaultDirName={localappdata}\Programs\SchoolContests
 DefaultGroupName=Школьные конкурсы

@@ -43,7 +43,10 @@ def main() -> None:
                     "--exclude-module", "PySide6.QtQml", "--exclude-module", "PySide6.QtQuick",
                     "--specpath", str(build), str(ROOT / "scripts/entry.py")], cwd=ROOT, check=True)
     application = ROOT / "dist/SchoolContests"
-    shutil.copy2(ROOT / "docs/usage.md", application / "Инструкция.md")
+    instructions = (ROOT / "docs/usage.md").read_text(encoding="utf-8")
+    instructions = instructions.replace("../src/school_contests/resources/guide.md", "Путеводитель.md")
+    (application / "Инструкция.md").write_text(instructions, encoding="utf-8")
+    shutil.copy2(resources / "guide.md", application / "Путеводитель.md")
     # Маркер есть только в переносном архиве, не в исходнике для установщика.
     marker = application / "portable.flag"
     marker.write_text("portable\n", encoding="utf-8")
