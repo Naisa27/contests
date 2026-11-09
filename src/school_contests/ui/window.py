@@ -20,6 +20,8 @@ from .tasks import run_task
 from .placement import centered_frame
 from .results import ResultsContent
 from .guide import GuideDialog
+from .about import AboutDialog
+from .feedback import FeedbackDialog
 
 RESOURCES = Path(__file__).resolve().parents[1] / "resources"
 
@@ -33,7 +35,7 @@ def button(text: str, action: Callable[..., Any], primary: bool = False) -> QPus
 
 
 class Home(QWidget):
-    def __init__(self, create: Callable[[], None], browse: Callable[[], None], news: Callable[[], None]) -> None:
+    def __init__(self, create: Callable[[], None], browse: Callable[[], None], news: Callable[[], None], about: Callable[[], None]) -> None:
         super().__init__()
         self.logo = QPixmap(str(RESOURCES / "images" / "logo.jpg"))
         layout = QVBoxLayout(self)
@@ -71,6 +73,7 @@ class Home(QWidget):
         footer.addWidget(QLabel(f"Школьные конкурсы · {__version__}"))
         footer.addStretch()
         footer.addWidget(button("Что нового в этой версии", news))
+        footer.addWidget(button("О программе", about))
         layout.addLayout(footer)
 
     def tick(self) -> None:
@@ -98,16 +101,29 @@ class Window(QMainWindow):
         self.setMinimumSize(900, 600)
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
-        self.home = Home(self.create_event, self.show_events, self.show_news)
+        self.home = Home(self.create_event, self.show_events, self.show_news, self.show_about)
         self.stack.addWidget(self.home)
         self.event_page: QWidget | None = None
         self.list_page: QWidget | None = None
         menu = self.menuBar().addMenu("Данные")
         menu.addAction("Создать резервную копию…", self.backup)
         menu.addAction("Восстановить из копии…", self.restore)
+        help_menu = self.menuBar().addMenu("Справка")
+        help_menu.addAction("Путеводитель по приложению", self.show_guide)
+        help_menu.addAction("Что нового в этой версии", self.show_news)
+        self.feedback_action = help_menu.addAction("Обратная связь: вопросы и пожелания", self.show_feedback)
+        self.about_action = help_menu.addAction("О программе", self.show_about)
+        self.help_actions = QWidget(self)
+        help_layout = QHBoxLayout(self.help_actions)
+        help_layout.setContentsMargins(0, 0, 0, 0)
+        help_layout.setSpacing(0)
+        self.feedback_button = button("Обратная связь: вопросы и пожелания", self.show_feedback)
+        self.feedback_button.setObjectName("guideButton")
+        help_layout.addWidget(self.feedback_button)
         self.guide_button = button("Путеводитель по приложению", self.show_guide)
         self.guide_button.setObjectName("guideButton")
-        self.menuBar().setCornerWidget(self.guide_button, Qt.Corner.TopRightCorner)
+        help_layout.addWidget(self.guide_button)
+        self.menuBar().setCornerWidget(self.help_actions, Qt.Corner.TopRightCorner)
         self.statusBar().showMessage("Данные сохраняются автоматически")
 
     def showEvent(self, event: QShowEvent) -> None:
@@ -166,6 +182,12 @@ class Window(QMainWindow):
 
     def show_guide(self) -> None:
         GuideDialog(self).exec()
+
+    def show_about(self) -> None:
+        AboutDialog(self).exec()
+
+    def show_feedback(self) -> None:
+        FeedbackDialog(self).exec()
 
     def create_event(self) -> None:
         dialog = EventDialog(self.store, parent=self)

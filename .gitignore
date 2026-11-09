@@ -7,4 +7,7 @@ build/
 dist/
 *.egg-info/
 .uv-cache/
+.env
+.env.*
+!.env.example
 

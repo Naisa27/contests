@@ -8,6 +8,8 @@ from school_contests.ui.window import Window
 from school_contests.ui.theme import QSS
 from school_contests.ui.dialogs import ImportDialog, ParticipantDialog
 from school_contests.ui.guide import GuideDialog
+from school_contests.ui.about import AboutDialog
+from school_contests.ui.feedback import FeedbackDialog
 from school_contests.excel import template
 from openpyxl import load_workbook
 
@@ -69,6 +71,16 @@ def main() -> int:
 
     QTimer.singleShot(100, capture_news)
     window.show_news()
+    about = AboutDialog(window)
+    about.show()
+    app.processEvents()
+    about.grab().save(str(output / "about.png"))
+    about.close()
+    feedback = FeedbackDialog(window)
+    feedback.show()
+    app.processEvents()
+    feedback.grab().save(str(output / "feedback.png"))
+    feedback.close()
     guide = GuideDialog(window)
     guide.show()
     app.processEvents()

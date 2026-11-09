@@ -1,0 +1,5 @@
+[project]
+name = "school-contests-feedback"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["waitress>=3.0.2,<4"]

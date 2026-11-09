@@ -46,7 +46,7 @@ def test_guide_opens_from_home_events_and_conduct(qtbot, store: Store, event_id:
     for navigate in (lambda: None, window.show_events, lambda: window.open_event(event_id)):
         navigate()
         assert window.guide_button.isVisible()
-        assert window.menuBar().cornerWidget(Qt.Corner.TopRightCorner) is window.guide_button
+        assert window.menuBar().cornerWidget(Qt.Corner.TopRightCorner).isAncestorOf(window.guide_button)
         QTimer.singleShot(0, close_guide)
         qtbot.mouseClick(window.guide_button, Qt.MouseButton.LeftButton)
     assert opened == ["Путеводитель по приложению"] * 3

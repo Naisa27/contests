@@ -21,5 +21,6 @@ packages = ["src/school_contests"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 qt_api = "pyside6"
+pythonpath = ["."]
 addopts = "-p no:cacheprovider"
 
