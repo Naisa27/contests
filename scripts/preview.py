@@ -7,6 +7,7 @@ from school_contests.storage import Store
 from school_contests.ui.window import Window
 from school_contests.ui.theme import QSS
 from school_contests.ui.dialogs import ImportDialog, ParticipantDialog
+from school_contests.ui.guide import GuideDialog
 from school_contests.excel import template
 from openpyxl import load_workbook
 
@@ -68,6 +69,17 @@ def main() -> int:
 
     QTimer.singleShot(100, capture_news)
     window.show_news()
+    guide = GuideDialog(window)
+    guide.show()
+    app.processEvents()
+    guide.grab().save(str(output / "guide-start.png"))
+    guide.topics.setCurrentRow(6)
+    app.processEvents()
+    guide.grab().save(str(output / "guide-scores.png"))
+    guide.resize(760, 520)
+    app.processEvents()
+    guide.grab().save(str(output / "guide-small.png"))
+    guide.close()
     form = ParticipantDialog(store, event_id, parent=window)
     form.show()
     app.processEvents()

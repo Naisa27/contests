@@ -10,6 +10,13 @@ QLabel#clock { font-size: 44px; font-weight: 300; }
 QLabel#muted { color: #496461; }
 QLabel#error { color: #A32525; }
 QLabel#eventsInstruction { font-size: 18px; font-weight: 600; padding: 8px 0; }
+QPushButton#guideButton { margin: 4px 8px; padding: 6px 12px; }
+QListWidget#guideTopics { border-radius: 4px; }
+QListWidget#guideTopics::item { padding: 9px 10px; }
+QListWidget#guideTopics::item:selected { background: #D1E8E2; color: #183C3A; }
+QListWidget#guideTopics::item:focus { border: 1px solid #17675E; }
+QLabel#guideSectionTitle { font-size: 23px; font-weight: 600; }
+QTextBrowser#guideBody { background: white; border: 1px solid #B5C8C5; border-radius: 4px; padding: 14px; font-size: 16px; selection-background-color: #D1E8E2; selection-color: #183C3A; }
 QPushButton { background: white; border: 1px solid #8CA6A3; border-radius: 6px; padding: 9px 16px; }
 QPushButton:hover { background: #E5F1EF; border-color: #17675E; }
 QPushButton:pressed { background: #CCE2DD; }

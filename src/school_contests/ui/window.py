@@ -19,6 +19,7 @@ from .models import ParticipantsModel, NameFilter, ScoreDelegate
 from .tasks import run_task
 from .placement import centered_frame
 from .results import ResultsContent
+from .guide import GuideDialog
 
 RESOURCES = Path(__file__).resolve().parents[1] / "resources"
 
@@ -104,6 +105,9 @@ class Window(QMainWindow):
         menu = self.menuBar().addMenu("Данные")
         menu.addAction("Создать резервную копию…", self.backup)
         menu.addAction("Восстановить из копии…", self.restore)
+        self.guide_button = button("Путеводитель по приложению", self.show_guide)
+        self.guide_button.setObjectName("guideButton")
+        self.menuBar().setCornerWidget(self.guide_button, Qt.Corner.TopRightCorner)
         self.statusBar().showMessage("Данные сохраняются автоматически")
 
     def showEvent(self, event: QShowEvent) -> None:
@@ -159,6 +163,9 @@ class Window(QMainWindow):
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
         dialog.exec()
+
+    def show_guide(self) -> None:
+        GuideDialog(self).exec()
 
     def create_event(self) -> None:
         dialog = EventDialog(self.store, parent=self)
