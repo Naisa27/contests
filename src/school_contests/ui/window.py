@@ -13,12 +13,14 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, Q
 from .. import __version__
 from ..domain import team_label
 from ..storage import Store
+from ..statistics import participant_statistics
 from .. import excel
 from .dialogs import EventDialog, TeamDialog, ParticipantDialog, TeamChoice, ImportDialog
 from .models import ParticipantsModel, NameFilter, ScoreDelegate
 from .tasks import run_task
 from .placement import centered_frame
 from .results import ResultsContent
+from .statistics import StatisticsContent
 from .guide import GuideDialog
 from .about import AboutDialog
 from .feedback import FeedbackDialog
@@ -112,6 +114,7 @@ class Window(QMainWindow):
         help_menu.addAction("Путеводитель по приложению", self.show_guide)
         help_menu.addAction("Что нового в этой версии", self.show_news)
         self.feedback_action = help_menu.addAction("Обратная связь: вопросы и пожелания", self.show_feedback)
+        self.feedback_action.setVisible(False)
         self.about_action = help_menu.addAction("О программе", self.show_about)
         self.help_actions = QWidget(self)
         help_layout = QHBoxLayout(self.help_actions)
@@ -120,6 +123,7 @@ class Window(QMainWindow):
         self.feedback_button = button("Обратная связь: вопросы и пожелания", self.show_feedback)
         self.feedback_button.setObjectName("guideButton")
         help_layout.addWidget(self.feedback_button)
+        self.feedback_button.hide()
         self.guide_button = button("Путеводитель по приложению", self.show_guide)
         self.guide_button.setObjectName("guideButton")
         help_layout.addWidget(self.guide_button)
@@ -345,7 +349,11 @@ class Window(QMainWindow):
         self.results = QScrollArea()
         self.results.setWidgetResizable(True)
         self.tabs.addTab(self.results, "Результаты конкурса")
+        self.statistics = QScrollArea()
+        self.statistics.setWidgetResizable(True)
+        self.tabs.addTab(self.statistics, "Статистика")
         self.tabs.currentChanged.connect(lambda index: self.render_results() if index == 1 else None)
+        self.tabs.currentChanged.connect(lambda index: self.render_statistics() if index == 2 else None)
         self.replace_page("event_page", page)
 
     def refresh_categories(self) -> None:
@@ -465,6 +473,10 @@ class Window(QMainWindow):
 
     def render_results(self) -> None:
         self.results.setWidget(ResultsContent(self.store.snapshot(self.event_id)))
+
+    def render_statistics(self) -> None:
+        participants = self.store.snapshot(self.event_id)["participants"]
+        self.statistics.setWidget(StatisticsContent(participant_statistics(participants)))
 
     def save_file(self, title: str, default: str, action: Callable[[Path], None]) -> None:
         filename, _ = QFileDialog.getSaveFileName(self, title, default, "Excel (*.xlsx)")

@@ -38,6 +38,10 @@ QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; font-w
 QScrollArea { background: transparent; border: none; }
 QStatusBar { color: #496461; }
 QWidget#resultsContent { background: #F3F7F7; }
+QWidget#statisticsContent { background: #F3F7F7; }
+QLabel#statisticsTotal { font-size: 24px; font-weight: 600; }
+QFrame#statisticsSection { background: white; border: 1px solid #B5C8C5; border-radius: 6px; }
+QLabel#statisticsHeading { font-size: 18px; font-weight: 600; }
 QLabel#resultsHeading { font-size: 20px; font-weight: 600; margin-top: 4px; }
 QLabel#resultsNotice { color: #68511A; background: #FFF5D6; border-radius: 4px; padding: 9px 12px; }
 QFrame#resultCard { background: white; border: 1px solid #B5C8C5; border-radius: 6px; }
