@@ -3,10 +3,12 @@
 from pathlib import Path
 from zipfile import ZipFile
 from types import CodeType, FunctionType
+from collections import Counter
 from PyInstaller.archive.readers import ZlibArchiveReader
 from PyInstaller.utils.win32.versioninfo import read_version_info_from_executable
 from school_contests import __version__
-from school_contests.domain import Winner
+from school_contests.domain import Winner, team_label
+from school_contests.statistics import ParticipantStatistics
 from school_contests.ui.theme import QSS
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,8 +25,11 @@ def main() -> None:
     model = archive.extract("school_contests.ui.models")
     assert any(code.co_name == "ScoreDelegate" for code in walk(model)), "Нет редактора очистки оценок"
     assert any(code.co_name == "set_school" for code in walk(model)), "Нет фильтра по школе"
+    assert any(code.co_name == "set_team" for code in walk(model)), "Нет фильтра по команде"
     window = archive.extract("school_contests.ui.window")
     assert any(code.co_name == "refresh_schools" for code in walk(window)), "Нет обновления списка школ"
+    assert any(code.co_name == "refresh_teams" for code in walk(window)), "Нет обновления списка команд"
+    assert any("AdjustToContents" in code.co_names for code in walk(window)), "Нет ширины фильтров по содержимому"
     assert any("isdecimal" in code.co_names for code in walk(window)), "Нет числовой сортировки школ"
     domain = archive.extract("school_contests.domain")
     rank_code = next(code for code in walk(domain) if code.co_name == "rank")
@@ -45,6 +50,16 @@ def main() -> None:
     assert any(code.co_name == "reflow" for code in walk(statistics)), "Нет адаптивного размещения таблиц"
     counts = archive.extract("school_contests.statistics")
     assert any(code.co_name == "participant_statistics" for code in walk(counts)), "Нет подсчётов участников"
+    counts_code = next(code for code in walk(counts) if code.co_name == "participant_statistics")
+    packaged_counts = FunctionType(counts_code, {
+        "Counter": Counter, "ParticipantStatistics": ParticipantStatistics, "team_label": team_label,
+    })
+    team_counts = packaged_counts(
+        [dict(name="Иван", school="289", class_name="9а", category=9, team_id=1),
+         dict(name="Анна", school="193", class_name="8а", category=8, team_id=None)],
+        [dict(id=1, number=1, name="Совы"), dict(id=2, number=2, name="")],
+    )
+    assert team_counts.by_team == (("№ 1 — Совы", 1), ("№ 2", 0), ("Без команды", 1)), "Неверная статистика команд в exe"
     assert __version__ in archive.extract("school_contests").co_consts, "В exe неверная версия пакета"
     application = ROOT / "dist/SchoolContests"
     expected = tuple(map(int, __version__.split("."))) + (0,)

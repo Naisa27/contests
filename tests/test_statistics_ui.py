@@ -48,7 +48,33 @@ def test_empty_event_statistics_explains_empty_tables(qtbot, store: Store, event
     window.tabs.setCurrentIndex(2)
     content = window.statistics.widget()
     assert content.total.text() == "Всего участников: 0"
-    assert all(section.table is None for section in (content.schools, content.categories, content.school_categories, content.duplicates))
+    assert all(section.table is None for section in (content.schools, content.categories, content.school_categories, content.teams, content.duplicates))
+    window.close()
+
+
+def test_team_statistics_ignores_filters_and_refreshes_membership(qtbot, store: Store, event_id: int) -> None:
+    team = store.save_team(event_id, 1, "Совы")
+    empty_team = store.save_team(event_id, 2, "Пустая")
+    participant = store.save_participant(event_id, "Иван", "289", "9а", 9)
+    store.save_participant(event_id, "Анна", "193", "8а", 8, team)
+    window = Window(store)
+    qtbot.addWidget(window)
+    window.open_event(event_id)
+    window.team_filter.setCurrentIndex(window.team_filter.findData(empty_team))
+    assert window.proxy.rowCount() == 0
+
+    def counts() -> dict[str, int]:
+        model = window.statistics.widget().teams.table.model()
+        return {model.index(row, 0).data(): model.index(row, 1).data() for row in range(model.rowCount())}
+
+    window.tabs.setCurrentIndex(2)
+    assert counts() == {"№ 1 — Совы": 1, "№ 2 — Пустая": 0, "Без команды": 1}
+    window.tabs.setCurrentIndex(0)
+    store.save_participant(event_id, "Иван", "289", "9а", 9, team, participant_id=participant)
+    store.save_team(event_id, 1, "Новое имя", team_id=team)
+    window.model.reload()
+    window.tabs.setCurrentIndex(2)
+    assert counts() == {"№ 1 — Новое имя": 2, "№ 2 — Пустая": 0}
     window.close()
 
 
@@ -81,7 +107,7 @@ def test_statistics_reflows_scrolls_long_names_and_sorts_counts_numerically(qtbo
     assert name_index.data(Qt.ItemDataRole.ToolTipRole) == participants[0]["name"]
 
 
-def test_all_three_statistics_blocks_fit_content_and_reflow_without_expanding(qtbot) -> None:
+def test_all_statistics_blocks_fit_content_and_reflow_without_expanding(qtbot) -> None:
     scroll = QScrollArea()
     scroll.setStyleSheet(QSS)
     scroll.setWidgetResizable(True)
@@ -93,19 +119,19 @@ def test_all_three_statistics_blocks_fit_content_and_reflow_without_expanding(qt
     sections = content.overview.sections
     scroll.resize(2400, 700)
     scroll.show()
-    qtbot.waitUntil(lambda: content.overview.columns == 3
+    qtbot.waitUntil(lambda: content.overview.columns == 4
                    and not content.overview.reflow_timer.isActive()
                    and all(section.width() == section.preferred_width() for section in sections))
     widths = [section.preferred_width() for section in sections]
     assert len({section.y() for section in sections}) == 1
     assert [section.width() for section in sections] == widths
     scroll.resize(sum(widths) + 300, 700)
-    qtbot.waitUntil(lambda: content.overview.columns == 3 and not content.overview.reflow_timer.isActive())
+    qtbot.waitUntil(lambda: content.overview.columns == 4 and not content.overview.reflow_timer.isActive())
     assert [section.width() for section in sections] == widths
     scroll.resize(max(120, min(widths) // 2), 600)
     qtbot.waitUntil(lambda: content.overview.columns == 1)
-    assert sections[0].y() < sections[1].y() < sections[2].y()
+    assert sections[0].y() < sections[1].y() < sections[2].y() < sections[3].y()
     assert scroll.horizontalScrollBar().maximum() == 0
     scroll.resize(sum(widths) + 120, 700)
-    qtbot.waitUntil(lambda: content.overview.columns == 3)
+    qtbot.waitUntil(lambda: content.overview.columns == 4)
     assert [section.width() for section in sections] == widths

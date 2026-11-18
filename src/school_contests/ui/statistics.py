@@ -171,7 +171,7 @@ class StatisticsContent(QWidget):
         self.total = QLabel(f"Всего участников: {statistics.total}")
         self.total.setObjectName("statisticsTotal")
         layout.addWidget(self.total)
-        hint = QLabel("Все участники мероприятия, независимо от поиска и фильтра категории.")
+        hint = QLabel("Все участники мероприятия, независимо от поиска и выбранных фильтров.")
         hint.setObjectName("muted")
         hint.setWordWrap(True)
         layout.addWidget(hint)
@@ -180,7 +180,8 @@ class StatisticsContent(QWidget):
         self.categories = StatisticsSection("Участники по категориям", ("Категория", "Участников"), statistics.by_category, empty)
         self.school_categories = StatisticsSection(
             "Категории в каждой школе", ("Школа", "Категория", "Участников"), statistics.by_school_category, empty)
-        self.overview = StatisticsOverview((self.schools, self.categories, self.school_categories))
+        self.teams = StatisticsSection("Участники по командам", ("Команда", "Участников"), statistics.by_team, empty)
+        self.overview = StatisticsOverview((self.schools, self.categories, self.school_categories, self.teams))
         layout.addWidget(self.overview)
         self.duplicates = StatisticsSection(
             "Повторяющиеся ФИО", ("ФИО", "Школа", "Класс"), statistics.duplicate_names,

@@ -27,4 +27,15 @@ def test_counts_include_every_record_and_exact_duplicate_names() -> None:
 def test_empty_statistics() -> None:
     result = participant_statistics([])
     assert result.total == 0
-    assert result.by_school == result.by_category == result.by_school_category == result.duplicate_names == ()
+    assert result.by_school == result.by_category == result.by_school_category == result.duplicate_names == result.by_team == ()
+
+
+def test_team_counts_include_empty_teams_and_unassigned_participants() -> None:
+    teams = [dict(id=1, number=10, name="Совы"), dict(id=2, number=2, name="Совы"),
+             dict(id=3, number=3, name="")]
+    participants = [dict(name="Иван", school="289", class_name="9а", category=9, team_id=team_id)
+                    for team_id in (1, 1, 2, None)]
+    result = participant_statistics(participants, teams)
+    assert result.by_team == (("№ 2 — Совы", 1), ("№ 3", 0), ("№ 10 — Совы", 2), ("Без команды", 1))
+    assert sum(count for _, count in result.by_team) == result.total
+    assert participant_statistics([], teams).by_team == (("№ 2 — Совы", 0), ("№ 3", 0), ("№ 10 — Совы", 0))

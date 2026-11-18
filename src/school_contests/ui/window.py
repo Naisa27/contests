@@ -8,7 +8,7 @@ from PySide6.QtGui import QPainter, QPixmap, QColor, QCloseEvent, QShowEvent, QS
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QStackedWidget, QListWidget, QListWidgetItem, QTableView,
     QTabWidget, QLineEdit, QComboBox, QHeaderView, QAbstractItemView, QInputDialog,
-    QMessageBox, QFileDialog, QDialog, QScrollArea, QDialogButtonBox)
+    QMessageBox, QFileDialog, QDialog, QScrollArea, QDialogButtonBox, QSizePolicy)
 
 from .. import __version__
 from ..domain import team_label
@@ -313,19 +313,28 @@ class Window(QMainWindow):
         filters.addWidget(search, 1)
         self.category_filter = QComboBox()
         self.category_filter.setAccessibleName("Фильтр по категории")
-        self.category_filter.setMinimumWidth(180)
+        self.category_filter.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.category_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         category_label = QLabel("Категория:")
         category_label.setBuddy(self.category_filter)
         filters.addWidget(category_label)
         filters.addWidget(self.category_filter)
         self.school_filter = QComboBox()
         self.school_filter.setAccessibleName("Фильтр по школе")
-        self.school_filter.setMinimumContentsLength(16)
-        self.school_filter.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.school_filter.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.school_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         school_label = QLabel("Школа:")
         school_label.setBuddy(self.school_filter)
         filters.addWidget(school_label)
-        filters.addWidget(self.school_filter, 1)
+        filters.addWidget(self.school_filter)
+        self.team_filter = QComboBox()
+        self.team_filter.setAccessibleName("Фильтр по команде")
+        self.team_filter.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.team_filter.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        team_label_widget = QLabel("Команда:")
+        team_label_widget.setBuddy(self.team_filter)
+        filters.addWidget(team_label_widget)
+        filters.addWidget(self.team_filter)
         controls.addLayout(filters)
         self.feedback = QLabel("Добавьте конкурсы и участников. Баллы вводятся прямо в таблице; двойной щелчок по ФИО открывает форму участника.")
         self.feedback.setWordWrap(True)
@@ -344,6 +353,11 @@ class Window(QMainWindow):
         self.model.modelReset.connect(self.refresh_schools)
         self.refresh_categories()
         self.refresh_schools()
+        self.team_filter.currentIndexChanged.connect(
+            lambda: self.proxy.set_team(self.team_filter.currentData()))
+        self.model.modelReset.connect(self.refresh_teams)
+        self.model.changed.connect(self.refresh_teams)
+        self.refresh_teams()
         self.table = QTableView()
         self.table.setModel(self.proxy)
         self.table.setItemDelegate(ScoreDelegate(self.table))
@@ -367,6 +381,21 @@ class Window(QMainWindow):
         self.tabs.currentChanged.connect(lambda index: self.render_results() if index == 1 else None)
         self.tabs.currentChanged.connect(lambda index: self.render_statistics() if index == 2 else None)
         self.replace_page("event_page", page)
+
+    def refresh_teams(self) -> None:
+        """Сохраняем выбор по ID при переименовании, импорте и назначении команды."""
+        selected = self.team_filter.currentData()
+        self.team_filter.blockSignals(True)
+        try:
+            self.team_filter.clear()
+            self.team_filter.addItem("Все команды", None)
+            self.team_filter.addItem("Без команды", 0)
+            for team in sorted(self.model.teams.values(), key=lambda team: team["number"]):
+                self.team_filter.addItem(team_label(team), team["id"])
+            self.team_filter.setCurrentIndex(max(0, self.team_filter.findData(selected)))
+        finally:
+            self.team_filter.blockSignals(False)
+        self.proxy.set_team(self.team_filter.currentData())
 
     def refresh_schools(self) -> None:
         """Список берётся из всех участников, независимо от активных фильтров."""
@@ -505,8 +534,8 @@ class Window(QMainWindow):
         self.results.setWidget(ResultsContent(self.store.snapshot(self.event_id)))
 
     def render_statistics(self) -> None:
-        participants = self.store.snapshot(self.event_id)["participants"]
-        self.statistics.setWidget(StatisticsContent(participant_statistics(participants)))
+        snapshot = self.store.snapshot(self.event_id)
+        self.statistics.setWidget(StatisticsContent(participant_statistics(snapshot["participants"], snapshot["teams"])))
 
     def save_file(self, title: str, default: str, action: Callable[[Path], None]) -> None:
         filename, _ = QFileDialog.getSaveFileName(self, title, default, "Excel (*.xlsx)")
