@@ -102,7 +102,37 @@ def test_team_and_category_transfer_rebuilds_all_groups(store: Store, event_id: 
     assert [row.group_id for row in standings if row.kind == "category"] == [9]
     assert [row.group_id for row in standings if row.kind == "within_team"] == [second]
     individual = next(row for row in standings if row.kind == "individual")
-    assert {winner.entity_id for winner in individual.winners} == {participant, unassigned}
+    assert {winner.entity_id for winner in individual.winners} == {participant}
+
+
+def test_only_positive_results_win_in_every_standing(store: Store, event_id: int) -> None:
+    first_team = store.save_team(event_id, 1)
+    zero_team = store.save_team(event_id, 2)
+    winner = store.save_participant(event_id, "Призёр", "1", "8а", 8, first_team)
+    zero = store.save_participant(event_id, "Ноль", "2", "9а", 9, zero_team)
+    store.save_participant(event_id, "Без оценок", "3", "10а", 10)
+    first = store.save_contest(event_id, "Первый")
+    second = store.save_contest(event_id, "Второй")
+    assert all(not row.winners for row in calculate(store.snapshot(event_id)))
+    store.save_score(event_id, zero, first, 0)
+    assert all(not row.winners for row in calculate(store.snapshot(event_id)))
+    store.save_score(event_id, winner, first, 5)
+    store.save_score(event_id, winner, second, 0)
+    standings = calculate(store.snapshot(event_id))
+    assert {row.kind for row in standings if row.winners} == {
+        "team", "individual", "category", "within_team", "contest",
+    }
+    for row in standings:
+        expected_id = first_team if row.kind == "team" else winner
+        assert all(entry.entity_id == expected_id and entry.points == 5 and entry.place == 1
+                   for entry in row.winners)
+    assert not next(row for row in standings if row.kind == "contest" and row.group_id == second).winners
+    assert not next(row for row in standings if row.kind == "category" and row.group_id == 9).winners
+    assert not next(row for row in standings if row.kind == "within_team" and row.group_id == zero_team).winners
+    store.save_score(event_id, winner, first, 0)
+    with store.engine.connect() as connection:
+        payload = json.loads(connection.execute(select(results.c.payload).where(results.c.event_id == event_id)).scalar_one())
+    assert all(not row["winners"] for row in payload)
 
 
 def test_failed_recalculation_rolls_back_score_and_assignment(store: Store, event_id: int, monkeypatch) -> None:

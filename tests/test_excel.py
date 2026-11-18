@@ -39,3 +39,27 @@ def test_export_six_sheets_keeps_zero_blank_and_literal_text(tmp_path: Path, sto
     sheet = workbook.worksheets[0]
     assert sheet["A2"].value == "=1+1" and sheet["A2"].data_type == "s"
     assert sheet["G2"].value == 0 and sheet["H2"].value is None
+    for result_sheet in workbook.worksheets[1:]:
+        assert all(row[1] is None for row in result_sheet.iter_rows(min_row=2, values_only=True))
+
+
+def test_export_only_positive_winners_in_corresponding_contest(tmp_path: Path, store: Store, event_id: int) -> None:
+    team = store.save_team(event_id, 1)
+    positive = store.save_participant(event_id, "Призёр", "1", "9а", 9, team)
+    zero = store.save_participant(event_id, "Ноль", "1", "9а", 9, team)
+    first = store.save_contest(event_id, "Первый")
+    second = store.save_contest(event_id, "Второй")
+    store.save_score(event_id, positive, first, 5)
+    store.save_score(event_id, positive, second, 0)
+    store.save_score(event_id, zero, first, 0)
+    path = tmp_path / "positive-results.xlsx"
+    excel.export(path, store.snapshot(event_id))
+    workbook = load_workbook(path)
+    for sheet in workbook.worksheets[1:]:
+        winners = [row for row in sheet.iter_rows(min_row=2, values_only=True) if row[1] is not None]
+        assert len(winners) == 1
+        assert winners[0][1] == 1
+        assert winners[0][4] == 5
+    contest_winners = [row for row in workbook["По конкурсам"].iter_rows(min_row=2, values_only=True)
+                       if row[1] is not None]
+    assert contest_winners[0][0] == "Первый"

@@ -53,8 +53,8 @@ KINDS = {
 
 
 def rank(entries: list[Winner]) -> tuple[Winner, ...]:
-    """Три лучших различных результата: 100, 100, 90, 80 → 1, 1, 2, 3."""
-    levels = sorted({row.points for row in entries}, reverse=True)[:3]
+    """Три лучших положительных результата: 100, 100, 90, 80 → 1, 1, 2, 3."""
+    levels = sorted({row.points for row in entries if row.points > 0}, reverse=True)[:3]
     return tuple(
         Winner(row.entity_id, row.name, row.detail, row.points, levels.index(row.points) + 1)
         for row in sorted(entries, key=lambda row: (-row.points, row.name.casefold(), row.entity_id))

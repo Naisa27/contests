@@ -1,9 +1,27 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QScrollArea
+from PySide6.QtWidgets import QLabel, QScrollArea
 
 from school_contests.domain import Standing, Winner
 from school_contests.ui.results import CardsGrid, WinnerRow
 from school_contests.ui.theme import QSS
+from school_contests.storage import Store
+from school_contests.ui.results import ResultsContent, ResultCard
+
+
+def test_zero_results_show_empty_cards_without_winners(qtbot, store: Store, event_id: int) -> None:
+    team = store.save_team(event_id, 1)
+    participant = store.save_participant(event_id, "Иван", "1", "9а", 9, team)
+    contest = store.save_contest(event_id, "Логика")
+    store.save_score(event_id, participant, contest, 0)
+    content = ResultsContent(store.snapshot(event_id))
+    qtbot.addWidget(content)
+    assert not content.findChildren(WinnerRow)
+    cards = content.findChildren(ResultCard)
+    assert len(cards) == 5
+    for card in cards:
+        assert "Призёров нет: в этом зачёте нет результатов больше нуля." in [
+            label.text() for label in card.findChildren(QLabel)
+        ]
 
 
 def test_grid_reflows_without_losing_tied_winners(qtbot) -> None:

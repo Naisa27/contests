@@ -55,7 +55,7 @@ class ResultCard(QFrame):
         title.setWordWrap(True)
         layout.addWidget(title)
         if not standing.winners:
-            empty = QLabel("Назначьте участникам команды для командного зачёта.")
+            empty = QLabel("Призёров нет: в этом зачёте нет результатов больше нуля.")
             empty.setWordWrap(True)
             layout.addWidget(empty)
         for winner in standing.winners:

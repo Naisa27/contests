@@ -318,6 +318,14 @@ class Window(QMainWindow):
         category_label.setBuddy(self.category_filter)
         filters.addWidget(category_label)
         filters.addWidget(self.category_filter)
+        self.school_filter = QComboBox()
+        self.school_filter.setAccessibleName("Фильтр по школе")
+        self.school_filter.setMinimumContentsLength(16)
+        self.school_filter.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        school_label = QLabel("Школа:")
+        school_label.setBuddy(self.school_filter)
+        filters.addWidget(school_label)
+        filters.addWidget(self.school_filter, 1)
         controls.addLayout(filters)
         self.feedback = QLabel("Добавьте конкурсы и участников. Баллы вводятся прямо в таблице; двойной щелчок по ФИО открывает форму участника.")
         self.feedback.setWordWrap(True)
@@ -331,7 +339,11 @@ class Window(QMainWindow):
         self.category_filter.currentIndexChanged.connect(
             lambda: self.proxy.set_category(self.category_filter.currentData()))
         self.model.modelReset.connect(self.refresh_categories)
+        self.school_filter.currentIndexChanged.connect(
+            lambda: self.proxy.set_school(self.school_filter.currentData()))
+        self.model.modelReset.connect(self.refresh_schools)
         self.refresh_categories()
+        self.refresh_schools()
         self.table = QTableView()
         self.table.setModel(self.proxy)
         self.table.setItemDelegate(ScoreDelegate(self.table))
@@ -355,6 +367,24 @@ class Window(QMainWindow):
         self.tabs.currentChanged.connect(lambda index: self.render_results() if index == 1 else None)
         self.tabs.currentChanged.connect(lambda index: self.render_statistics() if index == 2 else None)
         self.replace_page("event_page", page)
+
+    def refresh_schools(self) -> None:
+        """Список берётся из всех участников, независимо от активных фильтров."""
+        selected = self.school_filter.currentData()
+        schools = sorted({participant["school"] for participant in self.model.snapshot["participants"]},
+                         key=lambda school: (not school.isdecimal(),
+                                             int(school) if school.isdecimal() else 0,
+                                             school.casefold(), school))
+        self.school_filter.blockSignals(True)
+        try:
+            self.school_filter.clear()
+            self.school_filter.addItem("Все школы", None)
+            for school in schools:
+                self.school_filter.addItem(school, school)
+            self.school_filter.setCurrentIndex(max(0, self.school_filter.findData(selected)))
+        finally:
+            self.school_filter.blockSignals(False)
+        self.proxy.set_school(self.school_filter.currentData())
 
     def refresh_categories(self) -> None:
         selected = self.category_filter.currentData()

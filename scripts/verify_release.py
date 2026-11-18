@@ -2,10 +2,11 @@
 
 from pathlib import Path
 from zipfile import ZipFile
-from types import CodeType
+from types import CodeType, FunctionType
 from PyInstaller.archive.readers import ZlibArchiveReader
 from PyInstaller.utils.win32.versioninfo import read_version_info_from_executable
 from school_contests import __version__
+from school_contests.domain import Winner
 from school_contests.ui.theme import QSS
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,16 @@ def main() -> None:
     assert QSS in theme.co_consts, "В exe устаревшая тема"
     model = archive.extract("school_contests.ui.models")
     assert any(code.co_name == "ScoreDelegate" for code in walk(model)), "Нет редактора очистки оценок"
+    assert any(code.co_name == "set_school" for code in walk(model)), "Нет фильтра по школе"
+    window = archive.extract("school_contests.ui.window")
+    assert any(code.co_name == "refresh_schools" for code in walk(window)), "Нет обновления списка школ"
+    assert any("isdecimal" in code.co_names for code in walk(window)), "Нет числовой сортировки школ"
+    domain = archive.extract("school_contests.domain")
+    rank_code = next(code for code in walk(domain) if code.co_name == "rank")
+    packaged_rank = FunctionType(rank_code, {"Winner": Winner})
+    assert packaged_rank([Winner(1, "Ноль", "", 0)]) == (), "Нулевой результат попадает в призёры"
+    assert [row.place for row in packaged_rank([Winner(1, "А", "", 5), Winner(2, "Б", "", 5),
+                                               Winner(3, "В", "", 2), Winner(4, "Г", "", 0)])] == [1, 1, 2]
     dialogs = archive.extract("school_contests.ui.dialogs")
     assert any("resizeRowsToContents" in code.co_names for code in walk(dialogs)), "Устаревший предпросмотр импорта"
     guide = archive.extract("school_contests.ui.guide")
@@ -29,6 +40,11 @@ def main() -> None:
     assert any(code.co_name == "AboutDialog" for code in walk(about)), "Нет окна «О программе»"
     feedback = archive.extract("school_contests.ui.feedback")
     assert any(code.co_name == "FeedbackDialog" for code in walk(feedback)), "Нет формы обратной связи"
+    statistics = archive.extract("school_contests.ui.statistics")
+    assert any(code.co_name == "StatisticsContent" for code in walk(statistics)), "Нет вкладки статистики"
+    assert any(code.co_name == "reflow" for code in walk(statistics)), "Нет адаптивного размещения таблиц"
+    counts = archive.extract("school_contests.statistics")
+    assert any(code.co_name == "participant_statistics" for code in walk(counts)), "Нет подсчётов участников"
     assert __version__ in archive.extract("school_contests").co_consts, "В exe неверная версия пакета"
     application = ROOT / "dist/SchoolContests"
     expected = tuple(map(int, __version__.split("."))) + (0,)

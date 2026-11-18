@@ -130,6 +130,7 @@ class NameFilter(QSortFilterProxyModel):
         super().__init__()
         self.query = ""
         self.category: int | None = None
+        self.school: str | None = None
         self.setSortRole(Qt.ItemDataRole.UserRole)
 
     def search(self, text: str) -> None:
@@ -144,8 +145,16 @@ class NameFilter(QSortFilterProxyModel):
         self.category = category
         self.endFilterChange(QSortFilterProxyModel.Direction.Rows)
 
+    def set_school(self, school: str | None) -> None:
+        if school == self.school:
+            return
+        self.beginFilterChange()
+        self.school = school
+        self.endFilterChange(QSortFilterProxyModel.Direction.Rows)
+
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         source = self.sourceModel()
         name_matches = self.query in str(source.data(source.index(source_row, 1, source_parent))).casefold()
         category_matches = self.category is None or source.data(source.index(source_row, 4, source_parent)) == self.category
-        return name_matches and category_matches
+        school_matches = self.school is None or source.data(source.index(source_row, 2, source_parent)) == self.school
+        return name_matches and category_matches and school_matches
